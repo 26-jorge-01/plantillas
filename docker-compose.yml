@@ -1,0 +1,64 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    env_file:
+      - ./config/.env
+    volumes:
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - ./mysql_data:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    networks:
+      - gobdata-network
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: api
+    env_file:
+      - ./config/.env
+    environment:
+      DATABASE_URL: mysql+mysqlconnector://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mysql
+    networks:
+      - gobdata-network
+
+  redis:
+    image: redis:6.0
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - gobdata-network
+
+  airflow:
+    build:
+      context: ./airflow_config
+      dockerfile: Dockerfile
+    container_name: airflow
+    env_file:
+      - ./config/.env
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: mysql+mysqlconnector://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__WEBSERVER__RATE_LIMITING_STORAGE_URI: redis://redis:6379/0
+    volumes:
+      - ./airflow_config/dags:/opt/airflow/dags
+      - ./airflow_config/logs:/opt/airflow/logs
+      - ./airflow_config:/opt/airflow/config
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+    command: ["bash", "-c", "/wait-for-it.sh mysql:3306 -- airflow db migrate && airflow webserver"]
+    networks:
+      - gobdata-network
+
+networks:
+  gobdata-network:
+    driver: bridge

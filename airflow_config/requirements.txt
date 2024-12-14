@@ -1,0 +1,1 @@
+apache-airflow-providers-openlineage>=1.8.0

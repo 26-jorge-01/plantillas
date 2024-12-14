@@ -1,0 +1,23 @@
+# Archivos sensibles
+config/.env
+
+# Datos persistentes
+mysql_data/
+airflow_config/logs/
+logs/
+
+# Archivos generados
+__pycache__/
+*.pyc
+
+# Entornos virtuales
+.venv/
+
+# Configuraciones de IDEs
+.vscode/
+.idea/
+
+# Archivos temporales
+*.bak
+*.swp
+*.tmp
